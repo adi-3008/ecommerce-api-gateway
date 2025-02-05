@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8181/realms/spring-microservice-security-realm
+
+server:
+  port: 9000
+
+#swagger
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls[0]:
+      name: Product Service
+      url: /aggregate/product-service/v3/api-docs
+    urls[1]:
+      name: Order Service
+      url: /aggregate/order-service/v3/api-docs
+    urls[2]:
+      name: Inventory Service
+      url: /aggregate/inventory-service/v3/api-docs
+  api-docs:
+    path: /api-docs
+
+#actuator endpoints
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details:
+        always
+
+#Resilinece4j properties
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED #criteria to switch on circuit breaker, count request coming to api gateway
+        slidingWindowSize: 10  #on 10 request it will determine to switch on circuit breaker or not.
+        failureRateThreshold: 50  #when 50% calls fail then switch on circuit breaker, means 5/10 calls are failing then activate the circuit breaker.
+        waitDurationInOpenState: 5s #open state -> half open state timeout
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        minimum-number-of-calls: 5
+#Resilinece4j Timeout properties - fail the request if 3 sec happens and no response and if 5 times the request fails then circuit breaker will be
+# open state and all the calls to slow service will be blocked until circuit breaker will be reached in half open state.
+  timelimiter:
+    configs:
+          default:
+            timeout-duration: 10s
+#  retry properties assume service threw exception.
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 2s
+
+
